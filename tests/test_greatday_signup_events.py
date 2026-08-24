@@ -254,6 +254,24 @@ class TestScanSignupEvents:
         assert seen == [(2, 0), (4, 0)]
 
 
+class TestCollapseEvents:
+    def test_drops_repeated_signups(self):
+        rows = [_Row('signup', 100.0), _Row('signup', 200.0),
+                _Row('signout', 300.0), _Row('signout', 400.0),
+                _Row('signup', 500.0)]
+        kept = events.collapse_events(rows)
+        assert [(row.action, row.at) for row in kept] == [
+            ('signup', 500.0), ('signout', 300.0), ('signup', 100.0)]
+
+    def test_accepts_newest_first_input(self):
+        rows = [_Row('signup', 200.0), _Row('signup', 100.0)]
+        kept = events.collapse_events(reversed(rows))
+        assert [(row.action, row.at) for row in kept] == [('signup', 100.0)]
+
+    def test_empty(self):
+        assert events.collapse_events([]) == []
+
+
 class TestMergeHistory:
     def test_interleaves_picks_and_events_newest_first(self):
         picks = [_Pick(200.0, 20)]

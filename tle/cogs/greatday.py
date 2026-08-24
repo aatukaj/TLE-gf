@@ -9,6 +9,7 @@ from discord.ext import commands
 
 from tle import constants
 from tle.cogs._greatday_events import (
+    collapse_events,
     merge_history,
     record_event,
     scan_signup_events,
@@ -357,8 +358,8 @@ class GreatDay(commands.Cog):
             discord.utils.escape_mentions(target.display_name))
         picks = cf_common.user_db.greatday_get_pick_history(
             ctx.guild.id, target.id)
-        events = cf_common.user_db.greatday_get_signup_events(
-            ctx.guild.id, target.id)
+        events = collapse_events(cf_common.user_db.greatday_get_signup_events(
+            ctx.guild.id, target.id))
         entries = merge_history(picks, events)
         title = f'Great Day history — {name}'
         if not entries:
@@ -395,7 +396,8 @@ class GreatDay(commands.Cog):
                 'No picks recorded yet. Admins can run `;greatday backfill` '
                 'to seed history from the channel.')
 
-        personal = _personal_rank_line(rows, ctx.author.id)
+        personal = (_personal_rank_line(rows, ctx.author.id) + '\n'
+                    + self._signup_stat_lines(ctx.guild, ctx.author.id))
         # Rank the whole list once with standard competition ranking so tied
         # counts share a rank (and the tie still numbers correctly across page
         # boundaries), then paginate the (rank, row) pairs.
@@ -420,16 +422,21 @@ class GreatDay(commands.Cog):
     def _member_stats(self, guild, member):
         """Render a single member's pick count, last signup and days signed up."""
         count = cf_common.user_db.greatday_get_count(guild.id, member.id)
-        events = cf_common.user_db.greatday_get_signup_events(
-            guild.id, member.id)
-        last_signup = cf_common.user_db.greatday_get_last_signup(
-            guild.id, member.id)
-        signed_up = cf_common.user_db.greatday_is_signed_up(guild.id, member.id)
+        name = discord.utils.escape_mentions(member.display_name)
+        return (f'`{name}` has been great-day\'d **{count}** time(s).\n'
+                + self._signup_stat_lines(guild, member.id))
+
+    def _signup_stat_lines(self, guild, user_id):
+        """Render the last-signup and days-signed-up lines for a user."""
+        events = collapse_events(cf_common.user_db.greatday_get_signup_events(
+            guild.id, user_id))
+        signed_up = cf_common.user_db.greatday_is_signed_up(guild.id, user_id)
+        last_signup = next(
+            (row for row in events if row.action == 'signup'), None)
         days, complete = signed_up_post_count(
             events, cf_common.user_db.greatday_get_post_times(guild.id),
             signed_up)
-        name = discord.utils.escape_mentions(member.display_name)
-        lines = [f'`{name}` has been great-day\'d **{count}** time(s).']
+        lines = []
         if last_signup is None:
             # Signups predating the event log are unknown, not absent.
             lines.append('Last signup: not recorded'

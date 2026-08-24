@@ -157,6 +157,22 @@ def signed_up_post_count(events, post_times, currently_signed_up):
     return count, complete
 
 
+def collapse_events(events):
+    """Drop events that do not change signed-up state.
+
+    A second signup while already signed up (or a repeated signout) carries no
+    information, so only state transitions are kept. Accepts events in any
+    order and returns the kept ones newest first.
+    """
+    ordered = sorted(events, key=lambda row: (row.at, str(row.message_id)))
+    kept = []
+    for row in ordered:
+        if not kept or kept[-1].action != row.action:
+            kept.append(row)
+    kept.reverse()
+    return kept
+
+
 def merge_history(picks, events):
     """Interleave picks and signup events into newest-first display lines.
 
