@@ -1,8 +1,6 @@
 """Great Day DB methods — extracted from user_db_conn.py.
 
-Owns the ``greatday_signup`` and ``greatday_pick`` tables. The
-``greatday_ban`` table is created by a migration only (matching the original
-fresh-DB behavior, which did not create it in ``create_tables``).
+Owns the ``greatday_signup``, ``greatday_pick`` and ``greatday_ban`` tables.
 """
 import logging
 
@@ -34,6 +32,14 @@ class GreatdayDbMixin:
         self.conn.execute('''
             CREATE INDEX IF NOT EXISTS idx_greatday_pick_user
                 ON greatday_pick (guild_id, user_id)
+        ''')
+        # Also created by migration 1.21.0, which fresh databases skip.
+        self.conn.execute('''
+            CREATE TABLE IF NOT EXISTS greatday_ban (
+                guild_id    TEXT NOT NULL,
+                user_id     TEXT NOT NULL,
+                PRIMARY KEY (guild_id, user_id)
+            )
         ''')
 
     def greatday_signup(self, guild_id, user_id):
