@@ -158,12 +158,15 @@ def signed_up_post_count(events, post_times, currently_signed_up):
 
 
 def merge_history(picks, events):
-    """Interleave picks and signup events into newest-first display lines."""
-    labels = {'signup': 'Signed up', 'signout': 'Signed out'}
-    entries = [(row.picked_at, str(row.message_id), 'Picked') for row in picks]
+    """Interleave picks and signup events into newest-first display lines.
+
+    Picks keep their bare timestamp line; only signup/signout are labelled.
+    """
+    labels = {'signup': 'Signed up — ', 'signout': 'Signed out — '}
+    entries = [(row.picked_at, str(row.message_id), '') for row in picks]
     entries += [(row.at, str(row.message_id), labels[row.action])
                 for row in events]
     # Ties break on message id, matching the DB queries' ordering.
     entries.sort(key=lambda e: (e[0], int(e[1]) if e[1].isdigit() else 0),
                  reverse=True)
-    return [f'{label} — {_format_pick_time(at)}' for at, _, label in entries]
+    return [f'{label}{_format_pick_time(at)}' for at, _, label in entries]

@@ -258,9 +258,11 @@ class TestMergeHistory:
     def test_interleaves_picks_and_events_newest_first(self):
         picks = [_Pick(200.0, 20)]
         rows = [_Row('signup', 100.0), _Row('signout', 300.0)]
-        lines = events.merge_history(picks, rows)
-        assert [line.split(' — ')[0] for line in lines] == [
-            'Signed out', 'Picked', 'Signed up']
+        assert events.merge_history(picks, rows) == [
+            'Signed out — <t:300:F> (<t:300:R>)',
+            '<t:200:F> (<t:200:R>)',
+            'Signed up — <t:100:F> (<t:100:R>)',
+        ]
 
     def test_empty_when_nothing_recorded(self):
         assert events.merge_history([], []) == []
