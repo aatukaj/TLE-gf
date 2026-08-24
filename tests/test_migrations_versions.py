@@ -423,3 +423,14 @@ class TestFreshDbSchema:
                 'SELECT guild_id, user_id FROM greatday_ban').fetchall()
         finally:
             conn.conn.close()
+
+    def test_fresh_userdbconn_has_greatday_signup_event(self):
+        from tle.util.db.user_db_conn import UserDbConn
+
+        conn = UserDbConn(':memory:')
+        try:
+            conn.conn.execute(
+                'SELECT guild_id, user_id, action, at, message_id '
+                'FROM greatday_signup_event').fetchall()
+        finally:
+            conn.conn.close()
